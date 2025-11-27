@@ -115,15 +115,15 @@
           };
 
           defined-sets.prefix-sets = {
-            "ps0".prefix-list."default" = {
+            "ps0".prefix-list =  [{
               ip-prefix = "203.0.113.0/24";
               masklength-range = "24..32";
-            };
+            }];
 
-            "ps1".prefix-list."default" = {
+            "ps1".prefix-list = [{
               ip-prefix = "2001:db8:dead::/48";
               masklength-range = "48..64";
-            };
+            }];
           };
 
           policy-definitions."policy0".statements = {

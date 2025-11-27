@@ -560,7 +560,11 @@
 
   definedSetsPrefixSetType = { name, ... }: (opt {
     prefix-set-name = mkNameOption name "Prefix Set Name.";
-    prefix-list = listTypeOf definedSetsPrefixSetPrefixListType "List of prefixes in the prefix set.";
+    prefix-list = lib.mkOption {
+      type = lib.types.listOf (lib.types.submodule definedSetsPrefixSetPrefixListType);
+      description = "List of prefixes in the prefix set.";
+      default = [ ];
+    };
   });
 
   definedSetsNeighborSetType = { name, ... }: (opt {
