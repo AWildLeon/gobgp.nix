@@ -50,9 +50,21 @@
           rev = "v4.0.0";
           sha256 = "sha256-hXpNNDGiiJ0m8TjZe4ZOFhwma7KG7bm5iud1F0lcRzg=";
         };
+
       in {
         gobgpd = super.gobgpd.overrideAttrs (old: { inherit src version vendorHash; });
-        gobgp = super.gobgp.overrideAttrs (old: { inherit src version vendorHash; });
+        gobgp = super.gobgp.overrideAttrs (old: {
+          inherit src version vendorHash;
+          nativeBuildInputs = old.nativeBuildInputs ++ [ final.installShellFiles ];
+          postInstall = let
+            inherit (nixpkgs) lib;
+          in (old.postInstall or "") + (lib.optionalString (final.stdenv.buildPlatform.canExecute final.stdenv.hostPlatform) ''
+            installShellCompletion --cmd gobgp \
+              --bash <($out/bin/gobgp completion bash) \
+              --fish <($out/bin/gobgp completion fish) \
+              --zsh <($out/bin/gobgp completion zsh)
+          '');
+        });
       };
 
       # issue: https://github.com/osrg/gobgp/issues/3251
