@@ -42,6 +42,14 @@
     readOnly = true;
   };
 
+  dummyType = lib.mkOption {
+    type = lib.types.nullOr lib.types.bool;
+    default = null;
+    internal = true;
+    readOnly = true;
+    description = "Dummy option.";
+  };
+
   listTypeOf = inputType: description: lib.mkOption {
     inherit description;
     type = lib.types.attrsOf (lib.types.submodule inputType);
@@ -55,18 +63,11 @@
   };
 
   nestedEnableType = enableOptionName: description: {
+    config = dummyType;
     ${enableOptionName} = lib.mkOption {
       inherit description;
       type = lib.types.bool;
     };
-  };
-
-  dummyType = lib.mkOption {
-    type = lib.types.nullOr lib.types.bool;
-    default = null;
-    internal = true;
-    readOnly = true;
-    description = "Dummy option.";
   };
 
   routePolicyEnumType = lib.types.enum [ "accept-route" "reject-route" ];
@@ -98,6 +99,19 @@
     };
   };
 
+  confederationType = opt {
+    config = dummyType;
+    enabled = lib.mkOption {
+      type = lib.types.bool;
+      description = "Enable BGP Confederation.";
+    };
+
+    member-as-list = lib.mkOption {
+      type = lib.types.listOf lib.types.ints.unsigned;
+      description = "List of member AS numbers in the confederation.";
+    };
+  };
+
   globalType = opt {
     config = dummyType;
     as = lib.mkOption {
@@ -112,15 +126,25 @@
 
     local-address-list = lib.mkOption {
       type = lib.types.listOf ipType.any;
+      default = [ ];
       description = "List of local addresses to bind to.";
     };
 
     port = lib.mkOption {
       type = lib.types.port;
+      example = 179;
       description = "Port number for BGP sessions.";
     };
 
+    disable-best-path-selection = lib.mkOption {
+      type = lib.types.bool;
+      example = false;
+      description = "Disable best path selection.";
+    };
+
+    use-multiple-paths = nestedEnableType "enabled" "Enable Equal Cost Multipath Routing with Zebra.";
     apply-policy = attrsTypeOf applyPolicyType "Global apply policy settings.";
+    confederation = attrsTypeOf confederationType "BGP Confederation settings.";
   };
 
   rpkiServerType = opt {
@@ -133,6 +157,30 @@
     port = lib.mkOption {
       type = lib.types.port;
       description = "RPKI server port.";
+    };
+
+    refresh-time = lib.mkOption {
+      type = lib.types.int;
+      example = 3600;
+      description = "Refresh time in seconds for RPKI validation records.";
+    };
+
+    hold-time = lib.mkOption {
+      type = lib.types.int;
+      example = 600;
+      description = "Hold time in seconds for RPKI session.";
+    };
+
+    record-lifetime = lib.mkOption {
+      type = lib.types.int;
+      example = 3600;
+      description = "Lifetime in seconds for RPKI validation records.";
+    };
+
+    preference = lib.mkOption {
+      type = lib.types.ints.u8;
+      example = 1;
+      description = "Preference value for RPKI server priority.";
     };
   };
 
@@ -154,8 +202,27 @@
     };
 
     statistics-timeout = lib.mkOption {
-      type = lib.types.ints.unsigned;
+      type = lib.types.ints.u16;
+      example = 60;
       description = "Statistics timeout in seconds for BMP server.";
+    };
+
+    route-mirroring-enabled = lib.mkOption {
+      type = lib.types.bool;
+      example = false;
+      description = "Enable route mirroring for BMP server.";
+    };
+
+    sys-name = lib.mkOption {
+      type = lib.types.str;
+      example = "gobgp";
+      description = "System name for BMP server.";
+    };
+
+    sys-descr = lib.mkOption {
+      type = lib.types.str;
+      example = "GoBGP";
+      description = "System description for BMP server.";
     };
   };
 
@@ -195,18 +262,33 @@
   mtrDumpType = opt {
     config = dummyType;
     dump-type = lib.mkOption {
-      type = lib.types.str;
+      type = lib.types.enum [ "updates" "table" ];
+      example = "updates";
       description = "Type of MRT dump.";
     };
 
     file-name = lib.mkOption {
       type = lib.types.str;
+      example = "/var/log/gobgp/dump.mrt";
       description = "File path for MRT dump.";
+    };
+
+    table-name = lib.mkOption {
+      type = ipType.any;
+      example = "0.0.0.0";
+      description = "Table name (IP address) for MRT dump.";
     };
 
     dump-interval = lib.mkOption {
       type = lib.types.ints.unsigned;
+      example = 60;
       description = "Interval in seconds for MRT dump.";
+    };
+
+    rotation-interval = lib.mkOption {
+      type = lib.types.ints.unsigned;
+      example = 3600;
+      description = "File rotation interval in seconds for MRT dump.";
     };
   };
 
@@ -226,6 +308,16 @@
     url = lib.mkOption {
       type = lib.types.str;
       description = "Zebra connection URL.";
+    };
+
+    nexthop-trigger-enabled = lib.mkOption {
+      type = lib.types.bool;
+      description = "Enable nexthop trigger for Zebra.";
+    };
+
+    nexthop-trigger-delay = lib.mkOption {
+      type = lib.types.ints.unsigned;
+      description = "Nexthop trigger delay in seconds.";
     };
 
     redistribute-route-type-list = lib.mkOption {
@@ -287,17 +379,32 @@
     config = dummyType;
     connect-retry = lib.mkOption {
       type = lib.types.ints.unsigned;
+      example = 120;
       description = "Connect retry time in seconds.";
     };
 
     hold-time = lib.mkOption {
       type = lib.types.ints.unsigned;
+      example = 90;
       description = "Hold time in seconds.";
     };
 
     keepalive-interval = lib.mkOption {
       type = lib.types.ints.unsigned;
+      example = 30;
       description = "Keepalive interval in seconds.";
+    };
+
+    minimum-advertisement-interval = lib.mkOption {
+      type = lib.types.ints.unsigned;
+      example = 30;
+      description = "Minimum advertisement interval in seconds.";
+    };
+
+    idle-hold-time-after-reset = lib.mkOption {
+      type = lib.types.float;
+      example = 30.0;
+      description = "Idle hold time after reset in seconds (decimal64).";
     };
   };
 
@@ -305,17 +412,50 @@
     config = dummyType;
     passive-mode = lib.mkOption {
       type = lib.types.bool;
+      example = false;
       description = "Enable passive mode for the neighbor.";
     };
 
     local-address = lib.mkOption {
       type = ipType.any;
+      example = "192.0.2.1";
       description = "Local address to bind for the neighbor.";
+    };
+
+    local-port = lib.mkOption {
+      type = lib.types.port;
+      example = 179;
+      description = "Local port for the neighbor.";
     };
 
     remote-port = lib.mkOption {
       type = lib.types.port;
+      example = 179;
       description = "Remote port for the neighbor.";
+    };
+
+    mtu-discovery = lib.mkOption {
+      type = lib.types.bool;
+      example = false;
+      description = "Enable MTU discovery for the neighbor.";
+    };
+
+    remote-address = lib.mkOption {
+      type = ipType.any;
+      example = "192.0.2.2";
+      description = "Remote address for the neighbor.";
+    };
+
+    tcp-mss = lib.mkOption {
+      type = lib.types.ints.unsigned;
+      example = 536;
+      description = "TCP MSS for the neighbor.";
+    };
+
+    bind-interface = lib.mkOption {
+      type = lib.types.str;
+      example = "eth0";
+      description = "Interface to bind for the neighbor.";
     };
   };
 
@@ -365,6 +505,16 @@
     restart-time = lib.mkOption {
       type = lib.types.ints.unsigned;
       description = "Graceful restart time in seconds.";
+    };
+
+    helper-only = lib.mkOption {
+      type = lib.types.bool;
+      description = "Enable helper only mode for graceful restart.";
+    };
+
+    deferral-time = lib.mkOption {
+      type = lib.types.ints.unsigned;
+      description = "Deferral time in seconds for graceful restart.";
     };
   };
 
@@ -454,6 +604,20 @@
   });
 
 
+  neighborRouteServerType = (opt {
+    config = dummyType;
+    route-server-client = lib.mkOption {
+      type = lib.types.bool;
+      description = "Enable Route Server Client for the neighbor.";
+    };
+
+    secondary-route = lib.mkOption {
+      type = lib.types.bool;
+      description = "Enable Secondary Route for the neighbor.";
+    };
+  });
+
+
   baseNeighborPeerGroupType = { name, ... }: (opt {
     peer-group-name = mkNameOption name "Peer Group Name.";
   });
@@ -481,6 +645,11 @@
         description = "Neighbor IP address (IPv4 or IPv6).";
       };
 
+      neighbor-interface = lib.mkOption {
+        type = lib.types.str;
+        description = "Neighbor interface name.";
+      };
+
       local-as = lib.mkOption {
         type = lib.types.ints.unsigned;
         description = "Local AS number for the neighbor.";
@@ -501,6 +670,11 @@
         description = "Send software version to the neighbor.";
       };
 
+      send-community = lib.mkOption {
+        type = lib.types.ints.unsigned;
+        description = "Community attributes to send to the neighbor.";
+      };
+
       as-path-options = attrsTypeOf neighborAsPathOptionType "AS path options for the neighbor.";
       timer = attrsTypeOf neighborTimersType "Timer settings for the neighbor.";
       transport = attrsTypeOf neighborTransportType "Transport settings for the neighbor.";
@@ -510,7 +684,7 @@
       graceful-restart = attrsTypeOf neighborGracefulRestartType "Graceful restart settings for the neighbor.";
       afi-safis = listTypeOf afiSafisType "AFI-SAFI configurations for the neighbor.";
       apply-policy = attrsTypeOf applyPolicyType "Apply policy settings for the neighbor.";
-      route-server = nestedEnableType "route-server-client" "Enable Route Server Client for the AFI-SAFI.";
+      route-server = attrsTypeOf neighborRouteServerType "Route server settings for the neighbor.";
       ttl-security = attrsTypeOf afiSafisTtlSecurityType "TTL Security settings for the neighbor.";
     };
   };
@@ -700,6 +874,27 @@
     statements = listTypeOf policyDefinitionStatmentType "List of policy statements.";
   });
 
+  collectorType = opt {
+    config = dummyType;
+    url = lib.mkOption {
+      type = lib.types.str;
+      example = "http://localhost:8080";
+      description = "Collector endpoint URL.";
+    };
+
+    db-name = lib.mkOption {
+      type = lib.types.str;
+      example = "gobgp";
+      description = "Database name for collector.";
+    };
+
+    table-dump-interval = lib.mkOption {
+      type = lib.types.ints.unsigned;
+      example = 60;
+      description = "Table dump interval in seconds for collector.";
+    };
+  };
+
   configType = lib.types.submodule (opt {
     global = attrsTypeOf globalType "Global BGP configuration.";
     rpki-servers = listTypeOf rpkiServerType "RPKI servers to connect to.";
@@ -707,6 +902,7 @@
     vrfs = listTypeOf vrfType "VRF configurations.";
     mtr-dump = listTypeOf mtrDumpType "MRT dump configurations.";
     zebra = attrsTypeOf zebraType "Zebra integration settings.";
+    collector = attrsTypeOf collectorType "Collector settings.";
     neighbors = listTypeOf neighborType "BGP neighbors.";
     peer-groups = listTypeOf peerGroupType "BGP peer groups.";
     dynamic-neighbors = listTypeOf dynamicNeighborType "Dynamic BGP neighbors.";
