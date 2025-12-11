@@ -623,6 +623,16 @@
   });
 
   baseNeighborNeighborType = opt {
+    neighbor-address = lib.mkOption {
+      type = ipType.any;
+      description = "Neighbor IP address (IPv4 or IPv6).";
+    };
+
+    neighbor-interface = lib.mkOption {
+      type = lib.types.str;
+      description = "Neighbor interface name.";
+    };
+
     peer-group = lib.mkOption {
       type = lib.types.str;
       # check = checkPeerGroup;
@@ -638,16 +648,6 @@
       peer-as = lib.mkOption {
         type = lib.types.ints.unsigned;
         description = "Neighbor AS number.";
-      };
-
-      neighbor-address = lib.mkOption {
-        type = ipType.any;
-        description = "Neighbor IP address (IPv4 or IPv6).";
-      };
-
-      neighbor-interface = lib.mkOption {
-        type = lib.types.str;
-        description = "Neighbor interface name.";
       };
 
       local-as = lib.mkOption {
@@ -895,6 +895,93 @@
     };
   };
 
+  staticPathType = opt {
+    ignore = dummyType;
+    identifier = lib.mkOption {
+      type = lib.types.ints.unsigned;
+      description = "Identifier for the static path.";
+    };
+
+    origin = lib.mkOption {
+      type = lib.types.enum [ "igp" "egp" "incomplete" ];
+      description = "Origin attribute for the static path.";
+    };
+
+    prefix = lib.mkOption {
+      type = ipType.anyCidr;
+      description = "Static path prefix (CIDR).";
+    };
+
+    nexthop = lib.mkOption {
+      type = ipType.any;
+      description = "Next hop IP address for the static path.";
+    };
+
+    as-path = lib.mkOption {
+      type = lib.types.listOf (lib.types.oneOf [ lib.types.ints.unsigned lib.types.str ]);
+      description = "AS path for the static path.";
+    };
+
+    community = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      description = "BGP communities for the static path.";
+    };
+
+    med = lib.mkOption {
+      type = lib.types.ints.unsigned;
+      description = "MED attribute for the static path.";
+    };
+
+    local-pref = lib.mkOption {
+      type = lib.types.ints.unsigned;
+      description = "Local preference for the static path.";
+    };
+
+    aigp-metric = lib.mkOption {
+      type = lib.types.ints.unsigned;
+      description = "AIGP metric for the static path.";
+    };
+
+    large-community = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      description = "BGP large communities for the static path.";
+    };
+
+    aggregator = lib.mkOption {
+      type = lib.types.str;
+      description = "Aggregator attribute for the static path.";
+    };
+  };
+
+  sentryType = opt {
+    ignore = dummyType;
+    enabled = lib.mkEnableOption "Enable Sentry monitoring.";
+    dsn = lib.mkOption {
+      type = lib.types.str;
+      description = "Sentry DSN (Data Source Name).";
+    };
+
+    environment = lib.mkOption {
+      type = lib.types.str;
+      description = "Environment name for Sentry.";
+    };
+
+    release = lib.mkOption {
+      type = lib.types.str;
+      description = "Release version for Sentry.";
+    };
+
+    sample-rate = lib.mkOption {
+      type = lib.types.float;
+      description = "Sample rate for Sentry events (0.0 to 1.0).";
+    };
+
+    debug = lib.mkOption {
+      type = lib.types.bool;
+      description = "Enable debug mode for Sentry.";
+    };
+  };
+
   configType = lib.types.submodule (opt {
     global = attrsTypeOf globalType "Global BGP configuration.";
     rpki-servers = listTypeOf rpkiServerType "RPKI servers to connect to.";
@@ -908,5 +995,7 @@
     dynamic-neighbors = listTypeOf dynamicNeighborType "Dynamic BGP neighbors.";
     defined-sets = attrsTypeOf definedSetsType "Defined sets for policies.";
     policy-definitions = listTypeOf policyDefinitionType "BGP policy definitions.";
+    static-paths = listTypeOf staticPathType "Static BGP paths.";
+    # sentry = attrsTypeOf sentryType "Sentry monitoring settings.";
   });
 in configType

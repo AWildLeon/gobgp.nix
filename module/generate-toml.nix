@@ -23,7 +23,7 @@
     validateSetToNull = validate: builtins.mapAttrs (k: validateToNull) validate;
     v = validateSetToNull v_unknown;
     filterConfig = isSet: lib.filterAttrs (k: kv: ((builtins.typeOf kv) == "set") == isSet) v;
-    filterSet = filterConfig true;
+    filterSet = lib.optionalAttrs (!(builtins.all (kv: builtins.any (kkv: kkv == "ignore") (builtins.attrNames kv)) (builtins.attrValues (filterConfig true)))) (filterConfig true);
     filterNonSet = filterConfig false;
     filterConfigValues = builtins.attrValues (insertConfigAttrs filterSet);
     isListSet = isList (builtins.attrValues v);

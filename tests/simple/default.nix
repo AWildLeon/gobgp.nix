@@ -6,7 +6,7 @@
 
 { pkgs, ... }:
 {
-  name = "bgp-simple";
+  name = "simple";
   node.pkgsReadOnly = false;
   defaults = {
     networking.firewall.allowedTCPPorts = [ 179 ];
@@ -66,18 +66,6 @@
             prefixLength = 64;
           }];
         };
-
-        lo = {
-          ipv4.routes = [{
-            address = "203.0.113.0";
-            prefixLength = 24;
-          }];
-
-          ipv6.routes = [{
-            address = "2001:db8:dead::";
-            prefixLength = 48;
-          }];
-        };
       };
 
       services.gobgpd = {
@@ -99,6 +87,11 @@
             "directly-connected"
             "static"
           ];
+
+          static-paths = {
+            "ipv4".prefix = "203.0.113.0/24";
+            "ipv6".prefix = "2001:db8:dead::/48";
+          };
 
           neighbors = {
             "node-a-ipv4" = {

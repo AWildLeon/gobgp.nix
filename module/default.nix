@@ -7,6 +7,13 @@
 { config, lib, pkgs, ... }@inputs: let
   cfg = config.services.gobgpd;
   generateToml = import ./generate-toml.nix inputs;
+  postStartCommands = import ./post-start-commands.nix inputs;
+  validateConfigFile = file: pkgs.runCommand "validated-gobgp.conf" { } ''
+    cat ${file} > gobgp.conf
+    echo "Validating GoBGP configuration file: ${file}"
+    ${lib.getExe cfg.package} -df gobgp.conf
+    mv gobgp.conf $out
+  '';
 in {
   disabledModules = [ "services/networking/gobgpd.nix" ];
   imports = [
@@ -24,10 +31,19 @@ in {
 
     configFile = lib.mkOption {
       type = lib.types.path;
-      default = pkgs.writers.writeTOML "gobgpd.conf" (generateToml cfg.config);
+      default = validateConfigFile (pkgs.writers.writeTOML "gobgpd.conf" (generateToml cfg.config));
+      # default = pkgs.writers.writeTOML "gobgpd.conf" (generateToml cfg.config);
       readOnly = true;
       internal = true;
       description = "Path to an existing GoBGP configuration file. If set, this will override the 'config' option.";
+    };
+
+    postStartCommands = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = postStartCommands cfg.config;
+      readOnly = true;
+      internal = true;
+      description = "A list of commands to run after the GoBGP daemon has started. These commands will be executed using 'gobgp' CLI tool.";
     };
   };
 
@@ -46,13 +62,14 @@ in {
       wantedBy = [ "multi-user.target" ];
       after = [ "network.target" ];
       description = "GoBGP Routing Daemon";
+      postStart = builtins.concatStringsSep "\n" cfg.postStartCommands;
       serviceConfig = {
         Type = "notify";
         User = "gobgpd";
         Group = "gobgpd";
         ExecStartPre = "${lib.getExe cfg.package} -f ${cfg.configFile} -d";
         ExecStart = "${lib.getExe cfg.package} -f ${cfg.configFile} --sdnotify";
-        ExecReload = "${lib.getExe cfg.package} -r";
+        ExecReload = "${lib.getExe cfg.package} -f ${cfg.configFile} -r";
         AmbientCapabilities = "cap_net_bind_service";
       };
     };

@@ -1,6 +1,7 @@
 # Ignore build outputs from performing a nix-build or `nix build` command
 result
 result-*
+.nixos-test-history
 
 # Ignore automatically generated direnv output
 .direnv
