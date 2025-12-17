@@ -72,6 +72,24 @@
 
   routePolicyEnumType = lib.types.enum [ "accept-route" "reject-route" ];
 
+  aggregateAddressesType = opt {
+    ignore = dummyType;
+    prefix = lib.mkOption {
+      type = ipType.anyCidr;
+      description = "Aggregate address prefix (CIDR).";
+    };
+
+    summary-only = lib.mkOption {
+      type = lib.types.bool;
+      description = "Enable summary only for the aggregate address.";
+    };
+
+    policy-name = lib.mkOption {
+      type = lib.types.str;
+      description = "Policy name to apply to the aggregate address.";
+    };
+  };
+
   applyPolicyType = opt {
     config = dummyType;
     default-import-policy = lib.mkOption {
@@ -996,6 +1014,7 @@
     defined-sets = attrsTypeOf definedSetsType "Defined sets for policies.";
     policy-definitions = listTypeOf policyDefinitionType "BGP policy definitions.";
     static-paths = listTypeOf staticPathType "Static BGP paths.";
+    aggregate-addresses = listTypeOf aggregateAddressesType "Aggregate BGP addresses.";
     # sentry = attrsTypeOf sentryType "Sentry monitoring settings.";
   });
 in configType
